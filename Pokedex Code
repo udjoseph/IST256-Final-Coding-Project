@@ -1,0 +1,165 @@
+# Step 2: Write code here
+from IPython.display import display, HTML, Image, clear_output
+from IPython.display import Image, Audio
+from ipywidgets import interact_manual
+import urllib.request
+import re
+import glob
+import requests
+import lxml.html as lh
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+display(HTML("<h1> Ud's <font color= 'red'>PokeDex</font> </h1>"))
+pokedexpic = "https://img.icons8.com/color/480/pokedex.png"
+display(Image(url=pokedexpic, width=200))
+display(Audio(filename="pokesong.mp3"))
+
+url='http://pokemondb.net/pokedex/all'
+
+website = requests.get(url)
+doc = lh.fromstring(website.content)
+
+tr_elements = doc.xpath('//tr')
+
+col=[]
+i=0
+
+for t in tr_elements[0]:
+    i+=1
+    name=t.text_content()
+    col.append((name,[]))
+
+for j in range(1,len(tr_elements)):
+    T=tr_elements[j]
+
+    if len(T)!=10:
+        break
+
+    i=0
+
+    for t in T.iterchildren():
+        data=t.text_content() 
+        if i>0:
+            try:
+                data=int(data)
+            except:
+                pass
+        col[i][1].append(data)
+        i+=1
+
+Dict={title:column for (title,column) in col}
+df=pd.DataFrame(Dict)
+
+df2 = df.drop([df.index[3] , 
+              df.index[7] ,
+              df.index[8] ,
+              df.index[12] ,
+              df.index[19] ,
+              df.index[23] ,
+              df.index[25] ,
+              df.index[27] ,
+              df.index[33] ,
+              df.index[35] ,
+              df.index[37] ,
+              df.index[39] ,
+              df.index[40] ,
+              df.index[43] ,
+              df.index[49] ,
+              df.index[51] ,
+              df.index[64] ,
+              df.index[66] ,
+              df.index[68] ,
+              df.index[69] ,
+              df.index[71] ,
+              df.index[77] ,
+              df.index[79] ,
+              df.index[86] ,
+              df.index[96] ,
+              df.index[98] ,
+              df.index[100] ,
+              df.index[102] ,
+              df.index[104] ,
+              df.index[106] ,
+              df.index[108] ,
+              df.index[109] ,
+              df.index[113] ,
+              df.index[119] ,
+              df.index[121] ,
+              df.index[127] ,
+              df.index[134] ,
+              df.index[136] ,
+              df.index[139] ,
+              df.index[142] ,
+              df.index[148] ,
+              df.index[154] ,
+              df.index[162] ,
+              df.index[168] ,
+              df.index[172] ,
+              df.index[176] ,
+              df.index[186] ,
+              df.index[189] ,
+              df.index[191] ,
+              df.index[193] ,
+              df.index[198] ,
+              df.index[199] ,])
+
+src_path = "/home/jovyan/library/ist256/spring2022/lessons/Project/PokeImages/"
+no_of_image_to_show = 1 
+
+@interact_manual(Pokemon = df2['Name'][0:149])
+def main(Pokemon):
+    PokeID = df2.loc[df2['Name'] == Pokemon, '#'].iloc[0]
+    file_type = f"{PokeID}.png"
+
+    def display_n_images(src_path, file_type, no_of_image_to_show):
+            image_folder = glob.glob(src_path + file_type)
+            image_folder = image_folder[0:no_of_image_to_show]
+
+            for a_image in image_folder:
+                display(Image(filename=a_image))
+                print(a_image)
+
+    url2 = f"https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/pokedex.php?pokemon={Pokemon}"
+    response = requests.get(url2)
+    response.raise_for_status()
+    data1 = response.json()
+
+    print(data1['info']['description'])
+
+    display(HTML(f"<h1> You Chose <font color= 'magenta'>{Pokemon}</font>! </h1>"))
+    url3 = f"https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/{data1['images']['typeIcon']}"
+    display(Image(url3, width=30))
+    display_n_images(src_path, file_type, no_of_image_to_show)
+    print("\n")
+    print(df2[  df2['Name'] == Pokemon ])
+
+    display(HTML(f"<h1> {Pokemon} <font color= 'magenta'>Moveset</font>! </h1>"))
+    for i in data1['moves'][0:5]:
+        print(i['name'])
+
+    display(HTML(f"<h1> {Pokemon} <font color= 'magenta'>Weakness</font>! </h1>"))
+    url4 = f"https://courses.cs.washington.edu/courses/cse154/webservices/pokedex/{data1['images']['weaknessIcon']}"
+    display(Image(url4, width=30))
+    print(data1['info']['weakness'])
+
+    x = ['HP','Attack','Defense','Sp. Atk','Sp. Def','Speed']
+    y = [df2.loc[df2['Name'] == Pokemon, 'HP'].iloc[0],
+         df2.loc[df2['Name'] == Pokemon, 'Attack'].iloc[0],
+         df2.loc[df2['Name'] == Pokemon, 'Defense'].iloc[0],
+         df2.loc[df2['Name'] == Pokemon, 'Sp. Atk'].iloc[0],
+         df2.loc[df2['Name'] == Pokemon, 'Sp. Def'].iloc[0],
+         df2.loc[df2['Name'] == Pokemon, 'Speed'].iloc[0]]
+    plt.bar(x, y) 
+    plt.axis([0,6,0,150])
+    plt.xlabel("Stats", fontsize=16)
+    plt.ylabel("Level", fontsize=16)
+    plt.title("Pokemon Dex Data", fontsize=16)
+    plt.grid(True)
+    plt.show()
+    
+    search_keyword= f"{Pokemon}"
+    html = urllib.request.urlopen("https://www.youtube.com/results?search_query=" + search_keyword)
+    video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+    print("https://www.youtube.com/watch?v=" + video_ids[0])
